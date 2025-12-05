@@ -4,20 +4,47 @@ import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface AdminAuthContextType {
   isAuthenticated: boolean;
-  login: () => void;
+  isSuperAdmin: boolean;
+  role: 'admin' | 'superadmin' | null;
+  login: (role: 'admin' | 'superadmin') => void;
   logout: () => void;
+  resetAdminPassword: (newPassword: string) => void;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [role, setRole] = useState<'admin' | 'superadmin' | null>(null);
 
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  const login = (userRole: 'admin' | 'superadmin') => {
+    setIsAuthenticated(true);
+    setIsSuperAdmin(userRole === 'superadmin');
+    setRole(userRole);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    setIsSuperAdmin(false);
+    setRole(null);
+  };
+
+  const resetAdminPassword = (newPassword: string) => {
+    // In a real app, this would call an API to update the password
+    // For now, we'll store it in localStorage
+    localStorage.setItem('adminPassword', newPassword);
+  };
 
   return (
-    <AdminAuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AdminAuthContext.Provider value={{ 
+      isAuthenticated, 
+      isSuperAdmin, 
+      role, 
+      login, 
+      logout, 
+      resetAdminPassword 
+    }}>
       {children}
     </AdminAuthContext.Provider>
   );

@@ -2,57 +2,56 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Eye, EyeOff, LogOut, User, Mail, MapPin, Calendar, Briefcase, Edit2, Check, X, MessageSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Save, Eye, EyeOff, LogOut, User, Mail, MapPin, Calendar, Briefcase, Edit2, Check, X, MessageSquare, Clock, CheckCircle, AlertCircle, Settings, BarChart3, Users, FileText, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import ToastContainer from "@/components/ToastContainer";
 
 export default function AdminPage() {
   const router = useRouter();
-  const { isAuthenticated, login, logout } = useAdminAuth();
+  const { isAuthenticated, isSuperAdmin, role, login, logout, resetAdminPassword } = useAdminAuth();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMessages, setTotalMessages] = useState(0);
-  const messagesPerPage = 3;
-  
-  // Portfolio data state
-  const [portfolioData, setPortfolioData] = useState({
-    personalInfo: {
-      name: "Efren Jacob Centillas",
-      title: "Creative Designer",
-      location: "Buenavista, Bohol",
-      age: "21 years",
-      experience: "4+ years"
-    },
-    about: {
-      subtitle: "Learn more about my creative skills.",
-      heading: "Creative Designer with a Passion for Innovation",
-      description: "As a creative designer, I use my passion for design to create visually stunning and user-friendly ",
-      education: "University of Technology, 2018-2022",
-      interests: ["Web Development", "Machine Learning", "UI/UX Design", "Open Source", "Cloud Computing", "Mobile Development"]
-    },
-    availability: {
-      available: true,
-      message: "I'm currently available for freelance work and full-time opportunities. My typical response time is within 24 hours."
-    },
-    contact: {
-      email: "contact@example.com",
-      phone: "+1 (555) 123-4567",
-      address: "San Francisco, CA"
-    }
+  const [toasts, setToasts] = useState<Array<{ id: string; type: "success" | "error" | "warning"; message: string }>>([]);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactRequest, setContactRequest] = useState({
+    name: "",
+    email: "",
+    reason: "",
+    identity: ""
   });
+  const [loginAttempts, setLoginAttempts] = useState(0);
+  const [showContactOption, setShowContactOption] = useState(false);
+  const messagesPerPage = 3;
 
-  // Load data from localStorage on mount
+  const addToast = (type: "success" | "error" | "warning", message: string) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, type, message }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  // Debug state changes
   useEffect(() => {
-    const savedData = localStorage.getItem("portfolioData");
-    if (savedData) {
-      setPortfolioData(JSON.parse(savedData));
+    console.log('State changed:', {
+      loginAttempts,
+      showContactOption,
+      showContactForm
+    });
+  }, [loginAttempts, showContactOption, showContactForm]);
+
+  // Redirect super-admin to super-admin dashboard
+  useEffect(() => {
+    if (isAuthenticated && isSuperAdmin) {
+      router.push('/admin/super');
     }
-  }, []);
+  }, [isAuthenticated, isSuperAdmin, router]);
 
   // Fetch messages when authenticated
   useEffect(() => {
@@ -102,30 +101,30 @@ export default function AdminPage() {
   const totalPages = Math.ceil(totalMessages / messagesPerPage);
   const paginatedMessages = messages;
 
-  // Save data to localStorage and refresh content
-  const saveData = () => {
-    localStorage.setItem("portfolioData", JSON.stringify(portfolioData));
-    setSaveStatus("saved");
-    
-    // Trigger a custom event to notify other components of data changes
-    window.dispatchEvent(new CustomEvent('portfolioDataUpdated', { detail: portfolioData }));
-    
-    setTimeout(() => {
-      setSaveStatus("");
-      setIsEditing(false); // Exit edit mode after saving
-    }, 1500);
-  };
-
   // Handle authentication
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple password authentication (in production, use proper auth)
-    if (password === "admin123") {
-      login();
+    
+    // Check stored admin password first
+    const storedAdminPassword = localStorage.getItem('adminPassword');
+    
+    if (password === "super123") {
+      login('superadmin');
       setPassword("");
+      addToast('success', 'Logged in as Super Admin');
+    } else if (password === "admin123" || (storedAdminPassword && password === storedAdminPassword)) {
+      login('admin');
+      setPassword("");
+      addToast('success', 'Logged in as Admin');
     } else {
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus(""), 3000);
+      addToast('error', 'Incorrect password. Please try again.');
+      const newAttempts = loginAttempts + 1;
+      console.log('Login failed, newAttempts:', newAttempts);
+      setLoginAttempts(newAttempts);
+      if (newAttempts >= 3) {
+        console.log('Setting showContactOption to true');
+        setShowContactOption(true);
+      }
     }
   };
 
@@ -134,190 +133,343 @@ export default function AdminPage() {
     setPassword("");
   };
 
-  // Update portfolio data
-  const updateData = (section: string, field: string, value: any) => {
-    setPortfolioData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [field]: value
-      }
-    }));
+  const handleContactSubmit = () => {
+    console.log('Contact form submitted:', contactRequest);
+    if (!contactRequest.name || !contactRequest.email || !contactRequest.reason || !contactRequest.identity) {
+      addToast('error', 'Please fill in all fields');
+      return;
+    }
+
+    // Store contact request in localStorage for super-admin to review
+    const requests = JSON.parse(localStorage.getItem('contactRequests') || '[]');
+    const newRequest = {
+      id: Date.now().toString(),
+      ...contactRequest,
+      timestamp: new Date().toISOString(),
+      status: 'pending',
+      ipAddress: 'client-ip' // In production, get actual IP
+    };
+    console.log('New request created:', newRequest);
+    requests.push(newRequest);
+    localStorage.setItem('contactRequests', JSON.stringify(requests));
+    console.log('Requests stored in localStorage:', requests);
+
+    addToast('success', 'Your request has been sent to the Super Admin for verification');
+    setShowContactForm(false);
+    setContactRequest({ name: "", email: "", reason: "", identity: "" });
+    setLoginAttempts(0);
+    setShowContactOption(false);
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
+          className="bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-indigo-100 p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="text-blue-600" size={32} />
+            <div className="relative mx-auto mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl blur-sm opacity-20"></div>
+              <div className="relative w-16 h-16 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl flex items-center justify-center">
+                <User className="text-white" size={32} />
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Admin Login</h1>
-            <p className="text-gray-600">Enter your password to access the admin panel</p>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent mb-2">Admin Portal</h1>
+            <p className="text-slate-600">Enter your credentials to access the admin panel</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                 Password
               </label>
-              <div className="relative">
+              <div className="relative group">
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white"
+                  className="w-full px-4 py-3 pr-12 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 bg-white/80 backdrop-blur transition-all duration-200 group-hover:bg-white"
                   placeholder="Enter password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 bg-white p-1 rounded"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors p-1 rounded-lg hover:bg-indigo-50"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
 
-            {saveStatus === "error" && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                Incorrect password. Please try again.
-              </div>
-            )}
-
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white py-3 rounded-xl font-medium hover:from-indigo-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               Login
             </button>
           </form>
+
+          {showContactOption && (
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="text-sm text-amber-800 mb-3">
+                <strong>Having trouble accessing your account?</strong>
+              </p>
+              <button
+                onClick={() => {
+                  console.log('Contact button clicked');
+                  console.log('showContactForm before:', showContactForm);
+                  setShowContactForm(true);
+                  console.log('showContactForm after:', showContactForm);
+                }}
+                className="w-full px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
+              >
+                Contact Super Admin for Assistance
+              </button>
+            </div>
+          )}
+
+          <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <p className="text-xs text-slate-600 mb-2">
+              <strong>Default Credentials:</strong>
+            </p>
+            <div className="space-y-1 text-xs text-slate-500">
+              <p>• Admin: admin123</p>
+            </div>
+          </div>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white/80 backdrop-blur-lg border-b border-indigo-100 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <User className="text-blue-600" size={20} />
+          <div className="flex justify-between items-center py-5">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-xl blur-sm opacity-20"></div>
+                <div className="relative w-10 h-10 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Settings className="text-white" size={20} />
+                </div>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                  Admin Dashboard
+                </h1>
+                <p className="text-slate-500 text-xs uppercase tracking-wide">Portfolio Management System</p>
+              </div>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="group flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-900 transition-all duration-200 rounded-lg hover:bg-slate-100"
             >
-              <LogOut size={20} />
-              <span>Logout</span>
+              <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
+              <span className="font-medium">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Save Status */}
-        {saveStatus && (
+        {/* Analytics Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`mb-6 p-4 rounded-lg ${
-              saveStatus === "saved" 
-                ? "bg-green-50 text-green-700" 
-                : "bg-red-50 text-red-700"
-            }`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="group relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            {saveStatus === "saved" ? "Changes saved successfully!" : "Error saving changes"}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <FileText className="text-white" size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-slate-900">12</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Projects</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <p className="text-sm text-slate-600">Portfolio Items</p>
+              </div>
+            </div>
           </motion.div>
-        )}
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="group relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <MessageSquare className="text-white" size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-slate-900">{totalMessages}</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Messages</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                <p className="text-sm text-slate-600">Contact Form</p>
+              </div>
+            </div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="group relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-100 to-green-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Users className="text-white" size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-slate-900">1.2k</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Visitors</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <p className="text-sm text-slate-600">This Month</p>
+              </div>
+            </div>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="group relative overflow-hidden bg-white rounded-2xl border border-slate-200 p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <BarChart3 className="text-white" size={24} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-slate-900">98%</p>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide">Uptime</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                <p className="text-sm text-slate-600">Performance</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl p-6 text-white shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold mb-1">Messages</h3>
+                <p className="text-indigo-100 text-sm">Manage contact messages</p>
+              </div>
+              <button
+                onClick={() => router.push('/admin/messages')}
+                className="group bg-white/20 backdrop-blur border border-white/30 rounded-xl p-3 hover:bg-white/30 transition-all duration-200"
+              >
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-6 text-white shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold mb-1">Portfolio</h3>
+                <p className="text-emerald-100 text-sm">Update portfolio content</p>
+              </div>
+              <button
+                onClick={() => router.push('/admin/portfolio')}
+                className="group bg-white/20 backdrop-blur border border-white/30 rounded-xl p-3 hover:bg-white/30 transition-all duration-200"
+              >
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-6 text-white shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold mb-1">Analytics</h3>
+                <p className="text-purple-100 text-sm">View site statistics</p>
+              </div>
+              <button className="group bg-white/20 backdrop-blur border border-white/30 rounded-xl p-3 hover:bg-white/30 transition-all duration-200">
+                <BarChart3 size={20} className="group-hover:scale-110 transition-transform" />
+              </button>
+            </div>
+          </motion.div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Personal Information */}
+            {/* Portfolio Management */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl shadow-lg p-6"
+              className="bg-white/90 backdrop-blur-lg rounded-2xl border border-indigo-100 shadow-xl p-6"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Personal Information</h2>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                    <FileText className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Portfolio Management</h2>
+                    <p className="text-slate-500 text-sm">Edit and manage your portfolio content</p>
+                  </div>
+                </div>
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isEditing 
-                      ? "bg-blue-100 text-blue-600" 
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                  onClick={() => router.push('/admin/portfolio')}
+                  className="group px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl hover:from-indigo-600 hover:to-cyan-600 transition-all duration-200 text-sm font-medium flex items-center space-x-2"
                 >
-                  {isEditing ? <Check size={20} /> : <Edit2 size={20} />}
+                  <Edit2 size={16} className="group-hover:rotate-12 transition-transform" />
+                  <span>Edit Portfolio</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <input
-                    type="text"
-                    value={portfolioData.personalInfo.name}
-                    onChange={(e) => updateData("personalInfo", "name", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
+              <div className="text-center py-12 text-slate-500">
+                <div className="w-16 h-16 bg-gradient-to-r from-indigo-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <FileText className="text-indigo-500" size={32} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                  <input
-                    type="text"
-                    value={portfolioData.personalInfo.title}
-                    onChange={(e) => updateData("personalInfo", "title", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={portfolioData.personalInfo.location}
-                    onChange={(e) => updateData("personalInfo", "location", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
-                  <input
-                    type="text"
-                    value={portfolioData.personalInfo.age}
-                    onChange={(e) => updateData("personalInfo", "age", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Experience</label>
-                  <input
-                    type="text"
-                    value={portfolioData.personalInfo.experience}
-                    onChange={(e) => updateData("personalInfo", "experience", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
+                <p className="text-lg font-medium text-slate-700 mb-2">Portfolio Content Editor</p>
+                <p className="text-slate-500">Click "Edit Portfolio" to manage your portfolio information</p>
               </div>
             </motion.div>
 
@@ -326,26 +478,29 @@ export default function AdminPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="bg-white rounded-xl shadow-lg p-6"
+              className="bg-white/90 backdrop-blur-lg rounded-2xl border border-indigo-100 shadow-xl p-6"
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
-                  <MessageSquare size={20} />
-                  <span>Contact Messages</span>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                  <MessageSquare size={20} className="text-indigo-600" />
+                  <span>Recent Messages</span>
                 </h2>
                 <button
-                  onClick={fetchMessages}
-                  disabled={loadingMessages}
-                  className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+                  onClick={() => router.push('/admin/messages')}
+                  className="group px-4 py-2 bg-gradient-to-r from-indigo-50 to-cyan-50 border border-indigo-200 text-indigo-700 rounded-xl hover:from-indigo-100 hover:to-cyan-100 transition-all duration-200 text-sm font-medium"
                 >
-                  {loadingMessages ? 'Loading...' : 'Refresh'}
+                  View All
+                  <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
 
               {messages.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>No messages received yet</p>
+                <div className="text-center py-16 text-slate-500">
+                  <div className="w-20 h-20 bg-gradient-to-r from-indigo-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="text-indigo-500" size={32} />
+                  </div>
+                  <p className="text-xl font-semibold text-slate-700 mb-2">No Messages</p>
+                  <p className="text-slate-500">No messages received yet</p>
                 </div>
               ) : (
                 <>
@@ -355,21 +510,22 @@ export default function AdminPage() {
                         key={message.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                        className="border border-indigo-100 rounded-xl p-4 hover:shadow-lg transition-all duration-200 hover:border-indigo-200 bg-white/50"
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h3 className="font-semibold text-gray-900">{message.name}</h3>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              <h3 className="font-semibold text-slate-900">{message.name}</h3>
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                                 message.status === 'unread' 
-                                  ? 'bg-red-100 text-red-700' 
-                                  : 'bg-green-100 text-green-700'
+                                  ? 'bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-700 border border-orange-200' 
+                                  : 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200'
                               }`}>
-                                {message.status === 'unread' ? 'Unread' : 'Read'}
+                                <div className={`w-2 h-2 rounded-full mr-2 ${message.status === 'unread' ? 'bg-orange-400' : 'bg-emerald-400'}`}></div>
+                                {message.status === 'unread' ? 'Pending' : 'Processed'}
                               </span>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                            <div className="flex items-center space-x-4 text-sm text-slate-600 mb-2">
                               <span className="flex items-center space-x-1">
                                 <Mail size={14} />
                                 <span>{message.email}</span>
@@ -379,245 +535,214 @@ export default function AdminPage() {
                                 <span>{new Date(message.createdAt).toLocaleDateString()}</span>
                               </span>
                             </div>
-                            <p className="text-sm font-medium text-gray-700 mb-1">{message.subject}</p>
-                            <p className="text-gray-600">{message.message}</p>
+                            <p className="text-sm font-medium text-slate-800 mb-1">{message.subject}</p>
+                            <p className="text-slate-600 line-clamp-2">{message.message}</p>
                           </div>
                         </div>
                         <div className="flex justify-end space-x-2 mt-3">
                           {message.status === 'unread' && (
                             <button
                               onClick={() => updateMessageStatus(message.id, 'read')}
-                              className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                              className="group flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 text-emerald-700 rounded-lg hover:from-emerald-100 hover:to-green-100 transition-all duration-200 text-sm font-medium"
                             >
-                              <CheckCircle size={14} />
+                              <CheckCircle size={14} className="group-hover:scale-110 transition-transform" />
                               <span>Mark as Read</span>
-                            </button>
-                          )}
-                          {message.status === 'read' && (
-                            <button
-                              onClick={() => updateMessageStatus(message.id, 'unread')}
-                              className="flex items-center space-x-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                            >
-                              <AlertCircle size={14} />
-                              <span>Mark as Unread</span>
                             </button>
                           )}
                         </div>
                       </motion.div>
                     ))}
                   </div>
-
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-between items-center mt-6 pt-4 border-t">
-                      <div className="text-sm text-gray-600">
-                        Showing {messages.length} of {totalMessages} messages
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                        >
-                          Previous
-                        </button>
-                        <span className="px-3 py-1 text-sm text-gray-600">
-                          Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                        >
-                          Next
-                        </button>
-                        <button
-                          onClick={() => router.push('/admin/messages')}
-                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          See All Messages
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </>
               )}
             </motion.div>
-
-            {/* About Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl shadow-lg p-6"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-6">About Section</h2>
-              
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Subtitle</label>
-                  <input
-                    type="text"
-                    value={portfolioData.about.subtitle}
-                    onChange={(e) => updateData("about", "subtitle", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Heading</label>
-                  <input
-                    type="text"
-                    value={portfolioData.about.heading}
-                    onChange={(e) => updateData("about", "heading", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                  <textarea
-                    value={portfolioData.about.description}
-                    onChange={(e) => updateData("about", "description", e.target.value)}
-                    disabled={!isEditing}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500 resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
-                  <input
-                    type="text"
-                    value={portfolioData.about.education}
-                    onChange={(e) => updateData("about", "education", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Contact Information */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl shadow-lg p-6"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Contact Information</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={portfolioData.contact.email}
-                    onChange={(e) => updateData("contact", "email", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="text"
-                    value={portfolioData.contact.phone}
-                    onChange={(e) => updateData("contact", "phone", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                  <input
-                    type="text"
-                    value={portfolioData.contact.address}
-                    onChange={(e) => updateData("contact", "address", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500"
-                  />
-                </div>
-              </div>
-            </motion.div>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - Analytics Only */}
           <div className="space-y-8">
-            {/* Availability Status */}
+            {/* Quick Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl shadow-lg p-6"
+              className="bg-white/90 backdrop-blur-lg rounded-2xl border border-indigo-100 shadow-xl p-6"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Availability Status</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Stats</h2>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-700">Available for work</span>
-                  <button
-                    onClick={() => updateData("availability", "available", !portfolioData.availability.available)}
-                    disabled={!isEditing}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      portfolioData.availability.available ? "bg-blue-600" : "bg-gray-200"
-                    } disabled:opacity-50`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        portfolioData.availability.available ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-indigo-50 to-cyan-50 rounded-xl border border-indigo-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                      <MessageSquare className="text-white" size={16} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">Total Messages</span>
+                  </div>
+                  <span className="text-lg font-bold text-indigo-600">{totalMessages}</span>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Availability Message</label>
-                  <textarea
-                    value={portfolioData.availability.message}
-                    onChange={(e) => updateData("availability", "message", e.target.value)}
-                    disabled={!isEditing}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 bg-white disabled:bg-gray-50 disabled:text-gray-500 resize-none"
-                  />
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg flex items-center justify-center">
+                      <CheckCircle className="text-white" size={16} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">Processed</span>
+                  </div>
+                  <span className="text-lg font-bold text-emerald-600">
+                    {messages.filter(m => m.status === 'read').length}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl border border-orange-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-lg flex items-center justify-center">
+                      <AlertCircle className="text-white" size={16} />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">Pending</span>
+                  </div>
+                  <span className="text-lg font-bold text-orange-600">
+                    {messages.filter(m => m.status === 'unread').length}
+                  </span>
                 </div>
               </div>
             </motion.div>
 
-            {/* Actions */}
+            {/* Quick Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-xl shadow-lg p-6"
+              className="bg-white/90 backdrop-blur-lg rounded-2xl border border-indigo-100 shadow-xl p-6"
             >
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Actions</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-6">Quick Actions</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <button
-                  onClick={saveData}
-                  disabled={!isEditing}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  onClick={() => router.push('/admin/messages')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl hover:from-indigo-600 hover:to-cyan-600 transition-all duration-200 font-medium flex items-center justify-center space-x-2"
                 >
-                  <Save size={20} />
-                  <span>Save Changes</span>
+                  <MessageSquare size={18} />
+                  <span>View All Messages</span>
                 </button>
                 
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
-                    isEditing 
-                      ? "bg-gray-200 text-gray-700 hover:bg-gray-300" 
-                      : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                  }`}
+                  onClick={() => router.push('/admin/portfolio')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl hover:from-emerald-600 hover:to-green-600 transition-all duration-200 font-medium flex items-center justify-center space-x-2"
                 >
-                  {isEditing ? <X size={20} /> : <Edit2 size={20} />}
-                  <span>{isEditing ? "Cancel Editing" : "Enable Editing"}</span>
+                  <FileText size={18} />
+                  <span>Edit Portfolio</span>
                 </button>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">Contact Super Admin</h3>
+              <button
+                onClick={() => setShowContactForm(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={contactRequest.name}
+                  onChange={(e) => setContactRequest(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  value={contactRequest.email}
+                  onChange={(e) => setContactRequest(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900"
+                  placeholder="your.email@example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Reason for Access Request *
+                </label>
+                <textarea
+                  value={contactRequest.reason}
+                  onChange={(e) => setContactRequest(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 resize-none"
+                  rows={3}
+                  placeholder="Explain why you need admin access..."
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Identity Verification *
+                </label>
+                <textarea
+                  value={contactRequest.identity}
+                  onChange={(e) => setContactRequest(prev => ({ ...prev, identity: e.target.value }))}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-slate-900 resize-none"
+                  rows={3}
+                  placeholder="Provide information to verify your identity (e.g., employee ID, project details, etc.)"
+                  required
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-800">
+                  <strong>Important:</strong> The Super Admin will verify your identity before granting access. 
+                  False information will result in permanent denial of access.
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowContactForm(false);
+                    setContactRequest({ name: "", email: "", reason: "", identity: "" });
+                  }}
+                  className="flex-1 px-4 py-3 text-slate-700 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleContactSubmit}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-lg hover:from-indigo-600 hover:to-cyan-600 transition-all duration-200 font-medium"
+                >
+                  Send Request
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

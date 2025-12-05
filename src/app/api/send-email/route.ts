@@ -46,11 +46,15 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Resend API error:', error);
-      let errorMessage = error.message || 'Failed to send email via Resend';
+      let errorMessage = error.message || JSON.stringify(error) || 'Failed to send email via Resend';
       
       // Provide helpful guidance for common errors
       if (errorMessage.includes('only send testing emails')) {
         errorMessage = 'Resend test domain limitation: You can only send test emails to your own email. To send to other recipients, you need to verify a domain at resend.com/domains and update your FROM_EMAIL in .env file.';
+      }
+      
+      if (errorMessage.includes('domain is not verified')) {
+        errorMessage = 'Domain ejceex.tk is not verified yet. Please wait for DNS verification to complete in Resend dashboard.';
       }
       
       return NextResponse.json(
