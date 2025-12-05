@@ -2,16 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Eye, EyeOff, LogOut, User, Mail, MapPin, Calendar, Briefcase, Edit2, Check, X } from "lucide-react";
+import { Save, Eye, EyeOff, LogOut, User, Mail, MapPin, Calendar, Briefcase, Edit2, Check, X, MessageSquare, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 
 export default function AdminPage() {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, login, logout } = useAdminAuth();
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMessages, setTotalMessages] = useState(0);
+  const messagesPerPage = 3;
   
   // Portfolio data state
   const [portfolioData, setPortfolioData] = useState({
@@ -48,6 +54,54 @@ export default function AdminPage() {
     }
   }, []);
 
+  // Fetch messages when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMessages();
+    }
+  }, [isAuthenticated, currentPage]);
+
+  const fetchMessages = async () => {
+    setLoadingMessages(true);
+    try {
+      const response = await fetch(`/api/messages?page=${currentPage}&limit=${messagesPerPage}`);
+      const result = await response.json();
+      if (result.success) {
+        setMessages(result.data.messages);
+        setTotalMessages(result.data.total);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const updateMessageStatus = async (messageId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: messageId, status: newStatus }),
+      });
+      
+      if (response.ok) {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === messageId ? { ...msg, status: newStatus } : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error updating message:', error);
+    }
+  };
+
+  const totalPages = Math.ceil(totalMessages / messagesPerPage);
+  const paginatedMessages = messages;
+
   // Save data to localStorage and refresh content
   const saveData = () => {
     localStorage.setItem("portfolioData", JSON.stringify(portfolioData));
@@ -67,7 +121,8 @@ export default function AdminPage() {
     e.preventDefault();
     // Simple password authentication (in production, use proper auth)
     if (password === "admin123") {
-      setIsAuthenticated(true);
+      login();
+      setPassword("");
     } else {
       setSaveStatus("error");
       setTimeout(() => setSaveStatus(""), 3000);
@@ -75,7 +130,7 @@ export default function AdminPage() {
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    logout();
     setPassword("");
   };
 
@@ -264,6 +319,129 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
+            </motion.div>
+
+            {/* Contact Messages */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="bg-white rounded-xl shadow-lg p-6"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center space-x-2">
+                  <MessageSquare size={20} />
+                  <span>Contact Messages</span>
+                </h2>
+                <button
+                  onClick={fetchMessages}
+                  disabled={loadingMessages}
+                  className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+                >
+                  {loadingMessages ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+
+              {messages.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>No messages received yet</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    {messages.map((message: any) => (
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="font-semibold text-gray-900">{message.name}</h3>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                message.status === 'unread' 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {message.status === 'unread' ? 'Unread' : 'Read'}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                              <span className="flex items-center space-x-1">
+                                <Mail size={14} />
+                                <span>{message.email}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <Clock size={14} />
+                                <span>{new Date(message.createdAt).toLocaleDateString()}</span>
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-gray-700 mb-1">{message.subject}</p>
+                            <p className="text-gray-600">{message.message}</p>
+                          </div>
+                        </div>
+                        <div className="flex justify-end space-x-2 mt-3">
+                          {message.status === 'unread' && (
+                            <button
+                              onClick={() => updateMessageStatus(message.id, 'read')}
+                              className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                            >
+                              <CheckCircle size={14} />
+                              <span>Mark as Read</span>
+                            </button>
+                          )}
+                          {message.status === 'read' && (
+                            <button
+                              onClick={() => updateMessageStatus(message.id, 'unread')}
+                              className="flex items-center space-x-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                            >
+                              <AlertCircle size={14} />
+                              <span>Mark as Unread</span>
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                      <div className="text-sm text-gray-600">
+                        Showing {messages.length} of {totalMessages} messages
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          Previous
+                        </button>
+                        <span className="px-3 py-1 text-sm text-gray-600">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          Next
+                        </button>
+                        <button
+                          onClick={() => router.push('/admin/messages')}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
+                          See All Messages
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </motion.div>
 
             {/* About Section */}

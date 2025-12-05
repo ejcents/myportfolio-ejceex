@@ -10,7 +10,7 @@ export default function Hero() {
   const { portfolioData } = usePortfolio();
   
   const socialLinks = [
-    { icon: Github, href: "https://github.com", label: "GitHub" },
+    { icon: Github, href: "https://github.com/ejcents", label: "GitHub" },
     { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
     { icon: Mail, href: `mailto:${portfolioData.contact.email}`, label: "Email" },
   ];

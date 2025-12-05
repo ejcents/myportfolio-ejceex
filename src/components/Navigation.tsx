@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, Github, Linkedin, Mail } from "lucide-react";
+import { Github, Linkedin, Mail, Menu, X } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export default function Navigation() {
+  const { portfolioData } = usePortfolio();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -48,13 +50,13 @@ export default function Navigation() {
 
           {/* Social Links */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="https://github.com" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href="https://github.com/ejcents" className="text-gray-700 hover:text-blue-600 transition-colors">
               <Github size={20} />
             </a>
             <a href="https://linkedin.com" className="text-gray-700 hover:text-blue-600 transition-colors">
               <Linkedin size={20} />
             </a>
-            <a href="mailto:contact@example.com" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-blue-600 transition-colors">
               <Mail size={20} />
             </a>
           </div>
@@ -91,7 +93,7 @@ export default function Navigation() {
                 <a href="https://linkedin.com" className="text-gray-700 hover:text-blue-600">
                   <Linkedin size={20} />
                 </a>
-                <a href="mailto:contact@example.com" className="text-gray-700 hover:text-blue-600">
+                <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-blue-600">
                   <Mail size={20} />
                 </a>
               </div>

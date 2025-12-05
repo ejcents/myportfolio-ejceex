@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,7 +30,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <PortfolioProvider>
-          {children}
+          <AdminAuthProvider>
+            {children}
+          </AdminAuthProvider>
         </PortfolioProvider>
       </body>
     </html>

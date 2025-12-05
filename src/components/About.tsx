@@ -78,9 +78,6 @@ export default function About() {
 
             <div className="mb-6">
               <h4 className="font-semibold text-gray-900 mb-2">Education</h4>
-              <p className="text-gray-600">
-                Bachelor of Science in Information Technology
-              </p>
               <p className="text-gray-600 mb-4">
                 {portfolioData.about.education}
               </p>
