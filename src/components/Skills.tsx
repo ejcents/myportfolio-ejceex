@@ -1,53 +1,26 @@
 "use client";
 
+import React from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Code, Database, Globe, Smartphone, Palette, Server } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
+
+const iconMap = {
+  Globe,
+  Server,
+  Database,
+  Smartphone,
+  Palette,
+  Code
+};
 
 export default function Skills() {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 400], [0, -30]);
-  
-  const skillCategories = [
-    {
-      title: "Frontend Development",
-      icon: Globe,
-      skills: ["React", "Next.js", "TypeScript", "Tailwind CSS", "HTML5", "CSS3", "JavaScript"],
-      color: "from-blue-400 to-blue-600"
-    },
-    {
-      title: "Backend Development", 
-      icon: Server,
-      skills: ["Node.js", "Express", "Python", "Django", "REST APIs", "GraphQL"],
-      color: "from-indigo-400 to-indigo-600",
-    },
-    {
-      title: "Database",
-      icon: Database,
-      skills: ["MongoDB", "PostgreSQL", "MySQL", "Redis", "Firebase"],
-      color: "from-blue-400 to-blue-600"
-    },
-    {
-      title: "Mobile Development",
-      icon: Smartphone,
-      skills: ["React Native", "Flutter", "iOS", "Android"],
-      color: "from-pink-400 to-pink-600"
-    },
-    {
-      title: "UI/UX Design",
-      icon: Palette,
-      skills: ["Figma", "Adobe XD", "Sketch", "Responsive Design", "Wireframing"],
-      color: "from-orange-400 to-orange-600"
-    },
-    {
-      title: "Tools & Others",
-      icon: Code,
-      skills: ["Git", "Docker", "AWS", "CI/CD", "Agile", "Jest"],
-      color: "from-indigo-400 to-indigo-600"
-    }
-  ];
+  const { portfolioData } = usePortfolio();
 
   return (
-    <section id="skills" className="py-20 bg-gray-50">
+    <section id="skills" className="py-20 bg-gradient-to-br from-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -57,10 +30,10 @@ export default function Skills() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Skills & Technologies
+            {portfolioData.skills?.description || "Skills & Technologies"}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            A comprehensive overview of my technical skills and the technologies I work with.
+            {portfolioData.skills?.subtitle || "A comprehensive overview of my creative design skills and artistic capabilities."}
           </p>
         </motion.div>
 
@@ -68,7 +41,7 @@ export default function Skills() {
           style={{ y }}
           className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
-          {skillCategories.map((category, index) => (
+          {portfolioData.skills?.categories?.map((category, index) => (
             <motion.div
               key={category.title}
               initial={{ opacity: 0, y: 30 }}
@@ -78,7 +51,9 @@ export default function Skills() {
               className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
             >
               <div className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-lg flex items-center justify-center mb-4`}>
-                <category.icon className="text-white" size={28} />
+                {iconMap[category.icon as keyof typeof iconMap] && (
+                  React.createElement(iconMap[category.icon as keyof typeof iconMap], { className: "text-white", size: 28 })
+                )}
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 {category.title}
@@ -108,13 +83,7 @@ export default function Skills() {
             Proficiency Levels
           </h3>
           <div className="space-y-6">
-            {[
-              { name: "Frontend Development", level: 90 },
-              { name: "Backend Development", level: 85 },
-              { name: "Database Management", level: 80 },
-              { name: "UI/UX Design", level: 75 },
-              { name: "Mobile Development", level: 70 },
-            ].map((skill) => (
+            {portfolioData.skills?.proficiency?.map((skill) => (
               <div key={skill.name} className="space-y-2">
                 <div className="flex justify-between">
                   <span className="font-medium text-gray-900">{skill.name}</span>

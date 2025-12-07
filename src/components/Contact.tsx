@@ -62,7 +62,7 @@ export default function Contact() {
   ];
 
   return (
-    <section id="contact" className="py-20 bg-gray-50">
+    <section id="contact" className="py-20 bg-gradient-to-br from-purple-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -75,7 +75,7 @@ export default function Contact() {
             Get In Touch
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            I'm always interested in hearing about new projects and opportunities. Whether you have a question or just want to say hi, feel free to reach out!
+            I'm always excited to collaborate on creative design projects and innovative opportunities. Whether you have a creative challenge, design project, or just want to explore artistic possibilities, I'd love to connect and bring your vision to life!
           </p>
         </motion.div>
 

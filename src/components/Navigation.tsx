@@ -11,10 +11,15 @@ export default function Navigation() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      if (typeof window !== 'undefined') {
+        setScrolled(window.scrollY > 50);
+      }
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
   }, []);
 
   const navItems = [
@@ -40,7 +45,7 @@ export default function Navigation() {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"
+                  className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium transition-colors"
                 >
                   {item.label}
                 </a>
@@ -50,13 +55,13 @@ export default function Navigation() {
 
           {/* Social Links */}
           <div className="hidden md:flex items-center space-x-4">
-            <a href="https://github.com/ejcents" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href="https://github.com/ejcents" className="text-gray-700 hover:text-purple-600 transition-colors">
               <Github size={20} />
             </a>
-            <a href="https://linkedin.com" className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href="https://linkedin.com" className="text-gray-700 hover:text-purple-600 transition-colors">
               <Linkedin size={20} />
             </a>
-            <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-blue-600 transition-colors">
+            <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-purple-600 transition-colors">
               <Mail size={20} />
             </a>
           </div>
@@ -65,7 +70,7 @@ export default function Navigation() {
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-700 hover:text-blue-600 p-2"
+              className="text-gray-700 hover:text-purple-600 p-2"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -80,20 +85,20 @@ export default function Navigation() {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium"
+                  className="text-gray-700 hover:text-purple-600 block px-3 py-2 text-base font-medium"
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}
                 </a>
               ))}
               <div className="flex items-center space-x-4 px-3 py-2">
-                <a href="https://github.com" className="text-gray-700 hover:text-blue-600">
+                <a href="https://github.com" className="text-gray-700 hover:text-purple-600">
                   <Github size={20} />
                 </a>
-                <a href="https://linkedin.com" className="text-gray-700 hover:text-blue-600">
+                <a href="https://linkedin.com" className="text-gray-700 hover:text-purple-600">
                   <Linkedin size={20} />
                 </a>
-                <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-blue-600">
+                <a href={`mailto:${portfolioData.contact.email}`} className="text-gray-700 hover:text-purple-600">
                   <Mail size={20} />
                 </a>
               </div>

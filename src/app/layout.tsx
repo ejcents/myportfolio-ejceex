@@ -3,13 +3,14 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { UserAuthProvider } from "@/contexts/UserAuthContext";
 
 const inter = Inter({
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "John Doe - Full Stack Developer Portfolio",
+  title: "EJCEEX - Creative Design Portfolio",
   description: "Passionate full stack developer creating beautiful and functional web applications. Specializing in React, Node.js, and modern web technologies.",
   keywords: ["Full Stack Developer", "Web Developer", "React", "Node.js", "TypeScript", "Portfolio"],
   authors: [{ name: "John Doe" }],
@@ -29,11 +30,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <PortfolioProvider>
-          <AdminAuthProvider>
-            {children}
-          </AdminAuthProvider>
-        </PortfolioProvider>
+        <UserAuthProvider>
+          <PortfolioProvider>
+            <AdminAuthProvider>
+              {children}
+            </AdminAuthProvider>
+          </PortfolioProvider>
+        </UserAuthProvider>
       </body>
     </html>
   );

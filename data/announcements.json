@@ -1,0 +1,22 @@
+[
+  {
+    "id": "1",
+    "title": "Welcome to My Portfolio",
+    "content": "Thank you for visiting my portfolio! I am excited to share my work with you.",
+    "authorName": "Efren Jacob Centillas",
+    "authorEmail": "contact@ejceex.tk",
+    "isPublished": true,
+    "createdAt": "2025-12-06T04:57:05.647Z",
+    "updatedAt": "2025-12-06T04:57:05.647Z"
+  },
+  {
+    "id": "2",
+    "title": "New Project Launch",
+    "content": "I am excited to announce the launch of my latest project! Check it out in the portfolio section.",
+    "authorName": "Efren Jacob Centillas",
+    "authorEmail": "contact@ejceex.tk",
+    "isPublished": false,
+    "createdAt": "2025-12-05T04:57:05.647Z",
+    "updatedAt": "2025-12-05T04:57:05.647Z"
+  }
+]

@@ -10,6 +10,92 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("PUBLIC") // PUBLIC, PORTFOLIO_OWNER, ADMIN, SUPER_ADMIN, SYSTEM_ADMIN
+  firstName String?
+  lastName  String?
+  bio       String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  portfolioPosts PortfolioPost[]
+  inquiries      Inquiry[]
+  sentMessages   Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+model PortfolioPost {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  content     String
+  images      String   // JSON string of image URLs
+  tags        String   // JSON string of tags
+  category    String
+  featured    Boolean  @default(false)
+  published   Boolean  @default(false)
+  views       Int      @default(0)
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  inquiries   Inquiry[]
+
+  @@map("portfolio_posts")
+}
+
+model PortfolioView {
+  id         String   @id @default(uuid())
+  portfolioId String
+  viewerId    String   // User ID or IP address for anonymous viewers
+  viewedAt   DateTime @default(now())
+
+  @@unique([portfolioId, viewerId, viewedAt]) // Prevent duplicate views at same time
+  @@map("portfolio_views")
+}
+
+model Inquiry {
+  id        String   @id @default(uuid())
+  message   String
+  status    String   @default("PENDING") // PENDING, RESPONDED, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolioId  String
+  portfolio    PortfolioPost @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@map("inquiries")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
 model ContactMessage {
   id        String   @id @default(uuid())
   name      String
@@ -19,4 +105,15 @@ model ContactMessage {
   status    String   @default("unread")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  authorName  String
+  authorEmail String
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

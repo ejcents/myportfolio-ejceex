@@ -1,74 +1,21 @@
 "use client";
 
+import React from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ExternalLink, Github, Play } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export default function Projects() {
   const { scrollY } = useScroll();
   const y = useTransform(scrollY, [0, 500], [0, -40]);
+  const { portfolioData } = usePortfolio();
   
-  const projects = [
-    {
-      title: "E-Commerce Platform",
-      description: "A full-stack e-commerce platform with user authentication, payment processing, and admin dashboard. Built with React, Node.js, and MongoDB.",
-      image: "/api/placeholder/400/250",
-      technologies: ["React", "Node.js", "MongoDB", "Stripe", "Tailwind CSS"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: true
-    },
-    {
-      title: "Task Management App",
-      description: "A collaborative task management application with real-time updates, drag-and-drop functionality, and team collaboration features.",
-      image: "/api/placeholder/400/250",
-      technologies: ["Next.js", "TypeScript", "PostgreSQL", "Socket.io", "Framer Motion"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: true
-    },
-    {
-      title: "Weather Dashboard",
-      description: "A responsive weather dashboard with location-based forecasts, interactive maps, and detailed weather analytics.",
-      image: "/api/placeholder/400/250",
-      technologies: ["React", "API Integration", "Chart.js", "Geolocation", "CSS3"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: false
-    },
-    {
-      title: "Social Media Analytics",
-      description: "Analytics dashboard for social media metrics with data visualization, reporting, and insights generation.",
-      image: "/api/placeholder/400/250",
-      technologies: ["Python", "Django", "React", "D3.js", "PostgreSQL"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: false
-    },
-    {
-      title: "Portfolio Website",
-      description: "A modern, responsive portfolio website with smooth animations, dark mode support, and optimized performance.",
-      image: "/api/placeholder/400/250",
-      technologies: ["Next.js", "Tailwind CSS", "Framer Motion", "TypeScript"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: false
-    },
-    {
-      title: "Real-time Chat App",
-      description: "A real-time messaging application with end-to-end encryption, file sharing, and video calling capabilities.",
-      image: "/api/placeholder/400/250",
-      technologies: ["React Native", "Firebase", "WebRTC", "Redux", "Node.js"],
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com",
-      featured: false
-    }
-  ];
-
+  const projects = portfolioData.projects?.projects || [];
   const featuredProjects = projects.filter(project => project.featured);
   const otherProjects = projects.filter(project => !project.featured);
 
   return (
-    <section id="projects" className="py-20 bg-white">
+    <section id="projects" className="py-20 bg-gradient-to-br from-orange-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -78,10 +25,10 @@ export default function Projects() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Featured Projects
+            {portfolioData.projects?.description || "Featured Projects"}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            A selection of my recent work and personal projects that showcase my skills and expertise.
+            {portfolioData.projects?.subtitle || "A selection of my recent creative design projects that showcase my artistic vision and innovative solutions."}
           </p>
         </motion.div>
 

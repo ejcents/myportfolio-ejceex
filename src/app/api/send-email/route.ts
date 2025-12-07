@@ -15,12 +15,17 @@ export async function POST(request: Request) {
     }
 
     const emailData = {
-      from: process.env.FROM_EMAIL || 'noreply@yourdomain.com',
+      from: process.env.FROM_EMAIL || 'noreply@ejceex.tk',
       to: [to],
       subject: `Re: ${subject}`,
-      replyTo: process.env.ADMIN_EMAIL || 'admin@yourdomain.com',
+      replyTo: process.env.ADMIN_EMAIL || 'contact@ejceex.tk',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">Portfolio Contact</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Efren Jacob Centillas</p>
+          </div>
+          
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
             <h2 style="color: #333; margin-bottom: 10px;">Reply to your inquiry</h2>
             <p style="color: #666; margin-bottom: 20px;">${fromName || 'Admin'} has responded to your message:</p>
@@ -35,7 +40,13 @@ export async function POST(request: Request) {
               <strong>Please follow up if you have any questions or need further assistance.</strong>
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 10px;">
-              This is an automated response from the portfolio contact system.
+              This is an automated response from the portfolio contact system at ejceex.tk.
+            </p>
+          </div>
+          
+          <div style="margin-top: 20px; text-align: center;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              <a href="https://ejceex.tk" style="color: #667eea; text-decoration: none;">Visit Portfolio</a>
             </p>
           </div>
         </div>
@@ -55,6 +66,10 @@ export async function POST(request: Request) {
       
       if (errorMessage.includes('domain is not verified')) {
         errorMessage = 'Domain ejceex.tk is not verified yet. Please wait for DNS verification to complete in Resend dashboard.';
+      }
+      
+      if (errorMessage.includes('From address domain not verified')) {
+        errorMessage = 'The FROM_EMAIL domain is not verified. Make sure ejceex.tk is verified in Resend and DNS records are properly configured.';
       }
       
       return NextResponse.json(

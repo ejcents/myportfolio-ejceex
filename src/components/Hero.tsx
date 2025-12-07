@@ -16,7 +16,7 @@ export default function Hero() {
   ];
 
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <section id="home" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div 
           style={{ y }}
@@ -28,13 +28,13 @@ export default function Hero() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
-              Hi, I'm <span className="text-blue-600">{portfolioData.personalInfo.name}</span>
+              Hi, I'm <span className="text-purple-600">{portfolioData.personalInfo.name}</span>
             </h1>
             <h2 className="text-2xl md:text-3xl text-gray-700 mb-6">
               {portfolioData.personalInfo.title}
             </h2>
             <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              A creative designer with a passion for creating visually stunning websites and applications. I collaborate with international clients to bring their unique brand identities to life and create functional, user-friendly experiences.
+              A creative designer bringing innovative ideas to life through artistic vision and design excellence. I specialize in creative direction, digital art, and visual storytelling that transforms concepts into captivating experiences.
             </p>
           </motion.div>
 
@@ -46,13 +46,13 @@ export default function Hero() {
           >
             <a
               href="#contact"
-              className="bg-blue-600 text-white px-8 py-3 rounded-full font-medium hover:bg-blue-700 transition-colors"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-full font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
             >
               Get In Touch
             </a>
             <a
               href="#projects"
-              className="border border-blue-600 text-blue-600 px-8 py-3 rounded-full font-medium hover:bg-blue-50 transition-colors"
+              className="border border-purple-600 text-purple-600 px-8 py-3 rounded-full font-medium hover:bg-purple-50 transition-colors"
             >
               View Projects
             </a>
@@ -76,7 +76,7 @@ export default function Hero() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-gray-600 hover:text-blue-600 transition-colors"
+                className="text-gray-600 hover:text-purple-600 transition-colors"
                 aria-label={link.label}
               >
                 <link.icon size={24} />

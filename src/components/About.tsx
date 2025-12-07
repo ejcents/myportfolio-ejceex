@@ -18,7 +18,7 @@ export default function About() {
   ];
 
   return (
-    <section id="about" className="py-20 bg-white">
+    <section id="about" className="py-20 bg-gradient-to-br from-teal-50 to-purple-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -35,7 +35,7 @@ export default function About() {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="grid md:grid-cols-2 gap-4 items-center">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -44,8 +44,12 @@ export default function About() {
             style={{ y: y1 }}
           >
             <div className="relative">
-              <div className="w-64 h-64 mx-auto bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center">
-                <User className="text-white" size={80} />
+              <div className="w-64 h-64 mx-auto rounded-full overflow-hidden border-4 border-white shadow-xl">
+                <img 
+                  src={portfolioData.personalInfo.profileImage || "/profile-placeholder.jpg"} 
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </motion.div>
